@@ -1,0 +1,134 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "instanceName": {
+            "type": "string"
+        },
+        "databasePassword": {
+            "type": "securestring"
+        },
+        "databaseConnectionString": {
+            "type": "securestring"
+        },
+        "createDatabase": {
+            "type": "string",
+            "defaultValue": "Yes",
+            "allowedValues": [
+                "Yes",
+                "No"
+            ]
+        },
+        "databaseName": {
+            "type": "string",
+            "defaultValue": "UiPath"
+        },
+        "databaseTier": {
+            "type": "string",
+            "defaultValue": "Standard"
+        },
+        "databaseSku": {
+            "type": "string",
+            "defaultValue": "S1"
+        },
+        "databaseUsername": {
+            "type": "string",
+            "defaultValue": "dbAdmin"
+        },
+        "databaseConnectionStringType": {
+            "type": "string",
+            "defaultValue": "SQLAzure"
+        },
+        "templateRepoBase": {
+            "type": "string",
+            "defaultValue": "https://raw.githubusercontent.com/UiPath/DevOps"
+        },
+        "templateRepoBranch": {
+            "type": "string",
+            "defaultValue": "master"
+        },
+        "webappTemplateUri": {
+            "type": "string",
+            "defaultValue": "ARM/webapp/azuredeploy.json"
+        },
+        "webappParametersUri": {
+            "type": "string",
+            "defaultValue": "ARM/webapp/azuredeploy.parameters.json"
+        },
+        "databaseTemplateUri": {
+            "type": "string",
+            "defaultValue": "ARM/sql-server-database/azuredeploy.json"
+        },
+        "databaseParametersUri": {
+            "type": "string",
+            "defaultValue": "ARM/sql-server-database/azuredeploy.parameters.json"
+        }
+    },
+    "variables": {
+        "templateUriBase": "[concat(parameters('templateRepoBase'), '/', parameters('templateRepoBranch'), '/')]"
+    },
+    "resources": [
+        {
+            "apiVersion": "2017-05-10",
+            "name": "webappTemplate",
+            "type": "Microsoft.Resources/deployments",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(variables('templateUriBase'), parameters('webappTemplateUri'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "webAppName": {
+                        "value": "[parameters('instanceName')]"
+                    },
+                    "connectionString": {
+                        "value": "[parameters('databaseConnectionString')]"
+                    }
+                }
+            }
+        },
+        {
+            "apiVersion": "2017-05-10",
+            "name": "databaseTemplate",
+            "type": "Microsoft.Resources/deployments",
+            "condition": "[equals(parameters('createDatabase'), 'Yes')]",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[concat(variables('templateUriBase'), parameters('databaseTemplateUri'))]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "serverName": {
+                        "value": "[parameters('instanceName')]"
+                    },
+                    "administratorLogin": {
+                        "value": "[parameters('databaseUsername')]"
+                    },
+                    "administratorLoginPassword": {
+                        "value": "[parameters('databasePassword')]"
+                    },
+                    "databaseName": {
+                        "value": "[parameters('databaseName')]"
+                    },
+                    "databaseEdition": {
+                        "value": "[parameters('databaseTier')]"
+                    },
+                    "databaseServiceObjective": {
+                        "value": "[parameters('databaseSku')]"
+                    },
+                    "databaseCreateMode": {
+                        "value": "Default"
+                    },
+                    "sourceDatabaseId": {
+                        "value": ""
+                    },
+                    "location": {
+                        "value": "[resourceGroup().location]"
+                    }
+                }
+            }
+        }
+    ]
+}
